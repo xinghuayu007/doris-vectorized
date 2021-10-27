@@ -95,15 +95,7 @@ struct StringUtf8LengthImpl {
         res.resize(size);
         for (int i = 0; i < size; ++i) {
             const char* raw_str = reinterpret_cast<const char*>(&data[offsets[i - 1]]);
-            int str_size = offsets[i] - offsets[i - 1] - 1;
-
-            size_t char_len = 0;
-            for (size_t i = 0, char_size = 0; i < str_size; i += char_size) {
-                char_size = get_utf8_byte_length((unsigned)(raw_str)[i]);
-                ++char_len;
-            }
-
-            res[i] = char_len;
+            res[i] = VStringFunctions::utf8_length(StringVal(raw_str));
         }
         return Status::OK();
     }

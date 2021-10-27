@@ -289,6 +289,8 @@ TEST(function_string_test, function_char_length_test) {
     DataSet data_set = {{{std::string("")}, 0},    {{std::string("aa")}, 2},
                         {{std::string("我")}, 1},  {{std::string("我a")}, 2},
                         {{std::string("a我")}, 2}, {{std::string("123")}, 3},
+                        {{std::string("Привет")}, 6}, {{std::string("Приветaa")}, 8},
+                        {{std::string("ياخشىمۇسىز")}, 10}, {{std::string("ياخشىمۇسىزaa")}, 12},
                         {{Null()}, Null()}};
 
     vectorized::check_function<vectorized::DataTypeInt32, true>(func_name, input_types, data_set);

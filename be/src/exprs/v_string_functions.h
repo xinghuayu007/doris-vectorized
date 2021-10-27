@@ -182,6 +182,38 @@ public:
         }
         return char_size;
     }
+
+    /**
+     * Refer ClickHouse code: https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/UTF8Helpers.cpp
+     * Definition from WiKi:
+     * 对于UTF-8编码中的任意字节B，如果B的第一位为0，则B独立的表示一个字符(ASCII码)；
+     * 如果B的第一位为1，第二位为0，则B为一个多字节字符中的一个字节(非ASCII字符)；
+     * 如果B的前两位为1，第三位为0，则B为两个字节表示的字符中的第一个字节；
+     * 如果B的前三位为1，第四位为0，则B为三个字节表示的字符中的第一个字节；
+     * 如果B的前四位为1，第五位为0，则B为四个字节表示的字符中的第一个字节；
+     *
+     * That means the UTF8 length is equal to the number of bytes which are not match to 10XX_XXXX
+     * 0xxx_xxxx, 110x_xxxx, 1110_xxxx and 1111_0xxx
+     * are greater than 1011_1111 when use int8_t(negative and positive)
+     * Therefore it only needs to count the number of bytes which greater than 1011_1111
+     * */
+    static int utf8_length(const StringVal& str) {
+        int len = 0;
+        int begin = 0;
+        int end = begin + str.len;
+#if defined(__SSE2__)
+        const auto threshold = _mm_set1_epi8(0xBF);
+        for (; (begin + REGISTER_SIZE) < end; begin += REGISTER_SIZE) {
+            len += __builtin_popcount(
+                    _mm_movemask_epi8(_mm_cmpgt_epi8(
+                            _mm_loadu_si128(reinterpret_cast<const __m128i*>(str.ptr + begin)), threshold)));
+        }
+#endif
+        for (; begin < end; ++begin) {
+            len += static_cast<int8_t>(*(str.ptr + begin)) > static_cast<int8_t>(0xBF);
+        }
+        return len;
+    }
 };
 }
 
